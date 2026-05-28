@@ -1,0 +1,32 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import App from './App';
+import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <CartProvider>
+          <App />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#211f1b',
+                color: '#f5f0e8',
+                border: '1px solid rgba(201,168,76,0.3)',
+                fontFamily: "'Jost', sans-serif",
+                fontSize: '0.85rem',
+              },
+            }}
+          />
+        </CartProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);
