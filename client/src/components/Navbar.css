@@ -83,6 +83,16 @@
   box-shadow: var(--shadow-card);
   animation: fadeDown 0.2s ease;
 }
+
+/* Invisible bridge so mouse doesn't leave when moving to dropdown */
+.navbar__dropdown::before {
+  content: '';
+  position: absolute;
+  top: -1rem;
+  left: 0;
+  right: 0;
+  height: 1rem;
+}
 .navbar__dropdown--right { left: auto; right: 0; }
 @keyframes fadeDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 

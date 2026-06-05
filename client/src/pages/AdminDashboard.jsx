@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getProducts, createProduct, updateProduct, deleteProduct } from '../services/productService';
+import { getProducts, createProduct, updateProduct, deleteProduct, uploadImage } from '../services/productService';
 import { getAllOrders, updateOrderStatus } from '../services/orderService';
 import { getMessages, updateMessageStatus, deleteMessage } from '../services/messageService';
 import toast from 'react-hot-toast';
 import { FiTrash2, FiPlus, FiPackage, FiShoppingBag, FiUsers, FiMessageSquare, FiEdit2 } from 'react-icons/fi';
 
-const BLANK = { name: '', description: '', price: '', category: 'Modern', pieceType: 'Single Canvas', stock: 10, isFeatured: false, isNewArrival: false, images: [{ url: '', alt: '' }] };
+const BLANK = { name: '', description: '', price: '', category: 'Modern', pieceType: 'Single Canvas', stock: 10, isFeatured: false, isNewArrival: false, images: [{ url: '', alt: '' }], sizes: [] };
 const CATEGORIES = ['Sri Lankan Heritage','Modern','Portraits & Figures','Nautical & Coastal','Horses','Elephants','Abstract','Nature','Cityscape','Floral'];
 const PIECE_TYPES = ['Single Canvas','2-Piece Set','3-Piece Triptych','4-Piece Set','5-Piece Set'];
 const STATUSES = ['Pending','Processing','Shipped','Delivered','Cancelled'];
@@ -20,6 +20,7 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -52,21 +53,66 @@ export default function AdminDashboard() {
     } finally { setSaving(false); }
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const { data } = await uploadImage(formData);
+      setForm(f => ({ ...f, images: [{ url: data, alt: f.name || '' }] }));
+      toast.success('Image uploaded successfully!');
+    } catch (err) {
+      toast.error('Image upload failed');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleEditClick = (p) => {
     setForm({
       name: p.name,
-      description: p.description,
+      description: p.description || '',
       price: p.price,
       category: p.category,
       pieceType: p.pieceType,
       stock: p.stock,
       isFeatured: p.isFeatured || false,
       isNewArrival: p.isNewArrival || false,
-      images: p.images?.length > 0 ? p.images : [{ url: '', alt: '' }]
+      images: p.images?.length > 0 ? p.images : [{ url: '', alt: '' }],
+      sizes: p.sizes || []
     });
     setEditingId(p._id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAddSize = () => {
+    setForm(f => ({
+      ...f,
+      sizes: [...(f.sizes || []), { label: '', dimensions: '', price: '' }]
+    }));
+  };
+
+  const handleUpdateSize = (index, field, value) => {
+    setForm(f => {
+      const updatedSizes = [...(f.sizes || [])];
+      updatedSizes[index] = {
+        ...updatedSizes[index],
+        [field]: field === 'price' ? (value === '' ? '' : Number(value)) : value
+      };
+      return { ...f, sizes: updatedSizes };
+    });
+  };
+
+  const handleRemoveSize = (index) => {
+    setForm(f => ({
+      ...f,
+      sizes: (f.sizes || []).filter((_, idx) => idx !== index)
+    }));
   };
 
   const handleDelete = async (id) => {
@@ -183,14 +229,74 @@ export default function AdminDashboard() {
                     <input className="form-input" type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Image URL</label>
-                    <input className="form-input" value={form.images[0]?.url} onChange={e => setForm(f => ({ ...f, images: [{ url: e.target.value, alt: f.name }] }))} placeholder="https://..." />
+                    <label className="form-label">Image URL or Upload</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <input className="form-input" style={{ flex: 1 }} value={form.images[0]?.url} onChange={e => setForm(f => ({ ...f, images: [{ url: e.target.value, alt: f.name }] }))} placeholder="https://..." />
+                      <label className="btn btn-gold" style={{ cursor: 'pointer', opacity: uploadingImage ? 0.7 : 1 }}>
+                        {uploadingImage ? 'Uploading...' : 'Upload'}
+                        <input type="file" style={{ display: 'none' }} accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
+                      </label>
+                    </div>
                   </div>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Description *</label>
-                  <textarea className="form-input" rows={3} required value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={{ resize: 'vertical' }} />
+                  <label className="form-label">Description</label>
+                  <textarea className="form-input" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={{ resize: 'vertical' }} />
                 </div>
+
+                {/* Sizes Section */}
+                <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '1.25rem', background: 'rgba(255, 255, 255, 0.01)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <label className="form-label" style={{ margin: 0, color: 'var(--gold)', fontWeight: 500 }}>Size Options</label>
+                    <button type="button" className="btn btn-gold" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', height: 'auto' }} onClick={handleAddSize}>
+                      + Add Size Option
+                    </button>
+                  </div>
+                  {(!form.sizes || form.sizes.length === 0) ? (
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>No size options added yet. Default price will be used.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {form.sizes.map((sz, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                          <input
+                            className="form-input"
+                            style={{ flex: 2 }}
+                            placeholder="Label (e.g. 32x48inches)"
+                            value={sz.label || ''}
+                            required
+                            onChange={e => handleUpdateSize(idx, 'label', e.target.value)}
+                          />
+                          <input
+                            className="form-input"
+                            style={{ flex: 2 }}
+                            placeholder="Dimensions (e.g. 80x120 cm)"
+                            value={sz.dimensions || ''}
+                            onChange={e => handleUpdateSize(idx, 'dimensions', e.target.value)}
+                          />
+                          <input
+                            className="form-input"
+                            style={{ flex: 1.5 }}
+                            type="number"
+                            placeholder="Price (Rs.)"
+                            value={sz.price || ''}
+                            required
+                            onChange={e => handleUpdateSize(idx, 'price', e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            className="admin-action-btn admin-del-btn"
+                            style={{ padding: '0.5rem' }}
+                            onClick={() => handleRemoveSize(idx)}
+                            title="Remove Size"
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                     <input type="checkbox" checked={form.isFeatured} onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))} style={{ accentColor: 'var(--gold)' }} />

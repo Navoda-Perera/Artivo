@@ -64,12 +64,12 @@ export default function Navbar() {
           {NAV_LINKS.map((link) =>
             link.children ? (
               <li key={link.label} className="navbar__item navbar__item--drop"
-                onMouseEnter={() => setDropOpen(true)}
+                onMouseEnter={() => setDropOpen(link.label)}
                 onMouseLeave={() => setDropOpen(false)}>
                 <button className="navbar__link navbar__link--drop">
                   {link.label} <FiChevronDown size={12} />
                 </button>
-                {dropOpen && (
+                {dropOpen === link.label && (
                   <ul className="navbar__dropdown">
                     {link.children.map((c) => (
                       <li key={c.to}>
