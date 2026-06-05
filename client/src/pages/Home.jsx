@@ -35,7 +35,7 @@ export default function Home() {
   useEffect(() => {
     getFeaturedProducts()
       .then(({ data }) => setFeatured(data.products || []))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 

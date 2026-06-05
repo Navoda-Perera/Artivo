@@ -15,7 +15,7 @@ export default function Dashboard() {
   useEffect(() => {
     getMyOrders()
       .then(({ data }) => setOrders(data.orders || []))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
